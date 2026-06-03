@@ -8,3 +8,12 @@ data/cities500.zip
 venv/
 .venv/
 .streamlit/
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.DS_Store
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
