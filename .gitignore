@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.ipynb_checkpoints/
+data/cities500.txt
+data/cities500.zip
+venv/
+.venv/
+.streamlit/
