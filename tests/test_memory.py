@@ -82,3 +82,6 @@ def test_conversation_history_appends():
     history = mem.get_conversation_history()
     assert len(history) == 2
     assert history[0]["role"] == "user"
+    assert history[0]["content"] == "hello"
+    assert history[1]["role"] == "assistant"
+    assert history[1]["content"] == "hi there"
