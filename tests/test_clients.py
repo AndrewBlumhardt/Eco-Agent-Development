@@ -157,3 +157,29 @@ def test_events_no_events_returns_zero():
         )
     assert score == 0.0
     assert reasons == []
+
+
+from src.clients.geonames import GeoNamesClient, _haversine_miles
+
+
+def test_haversine_miles_known_distance():
+    # Austin TX to San Antonio TX is approximately 80 miles
+    dist = _haversine_miles(30.2672, -97.7431, 29.4241, -98.4936)
+    assert 70 < dist < 85
+
+
+def test_find_nearby_sorts_by_distance():
+    client = GeoNamesClient.__new__(GeoNamesClient)
+    client._cities = [
+        {"name": "Round Rock", "lat": 30.508, "lng": -97.679, "population": 133372},
+        {"name": "San Marcos", "lat": 29.883, "lng": -97.941, "population": 65645},
+        {"name": "Georgetown", "lat": 30.633, "lng": -97.677, "population": 75000},
+    ]
+    results = client.find_nearby_destinations(
+        center_lat=30.2672, center_lng=-97.7431, radius_miles=50, limit=3
+    )
+    assert len(results) >= 1
+    for r in results:
+        assert r.distance_miles <= 50
+    if len(results) > 1:
+        assert results[0].distance_miles <= results[1].distance_miles
