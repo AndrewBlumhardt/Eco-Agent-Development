@@ -45,3 +45,32 @@ def test_dispatch_search_hotels_calls_tripadvisor():
 def test_dispatch_unknown_tool_returns_error():
     result = dispatch_tool(tool_name="nonexistent", tool_input={}, clients={})
     assert "error" in str(result).lower()
+
+
+from src.agent import EcoTravelAgent
+from src.models import UserPreferences
+from src.memory import SessionMemory
+
+
+def test_agent_rejects_non_travel_query():
+    agent = EcoTravelAgent.__new__(EcoTravelAgent)
+    agent.memory = SessionMemory()
+    assert agent._is_in_scope("What is the capital of France?") is False
+
+
+def test_agent_rejects_coding_question():
+    agent = EcoTravelAgent.__new__(EcoTravelAgent)
+    agent.memory = SessionMemory()
+    assert agent._is_in_scope("Write me a Python function to sort a list") is False
+
+
+def test_agent_accepts_hotel_query():
+    agent = EcoTravelAgent.__new__(EcoTravelAgent)
+    agent.memory = SessionMemory()
+    assert agent._is_in_scope("Find me a hotel in Sedona for July") is True
+
+
+def test_agent_accepts_crowd_query():
+    agent = EcoTravelAgent.__new__(EcoTravelAgent)
+    agent.memory = SessionMemory()
+    assert agent._is_in_scope("What are low-crowd areas near Austin this weekend?") is True
