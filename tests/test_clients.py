@@ -53,6 +53,8 @@ def test_summarize_reviews_empty():
 
 
 from src.clients.amadeus import AmadeusClient
+from src.clients.weather import WeatherClient
+from src.clients.events import EventsClient
 
 
 def test_amadeus_get_hotel_offers_returns_list():
@@ -89,3 +91,69 @@ def test_amadeus_estimate_availability_pct_scales_with_offers():
     assert pct_many > pct_one
     assert 0 < pct_one <= 100
     assert 0 < pct_many <= 100
+
+
+def test_weather_suitability_clear_skies_returns_high():
+    client = WeatherClient(api_key="test_key")
+    mock_response = {
+        "list": [
+            {"dt_txt": "2026-07-01 12:00:00", "main": {"temp": 295},
+             "weather": [{"main": "Clear"}]},
+            {"dt_txt": "2026-07-02 12:00:00", "main": {"temp": 293},
+             "weather": [{"main": "Clear"}]},
+        ]
+    }
+    with patch("src.clients.weather.requests.get") as mock_get:
+        mock_get.return_value = Mock(status_code=200, json=lambda: mock_response)
+        mock_get.return_value.raise_for_status = Mock()
+        score = client.get_weather_suitability(
+            lat=30.2, lon=-97.7, checkin_date="2026-07-01", checkout_date="2026-07-05"
+        )
+    assert score == 1.0
+
+
+def test_weather_suitability_storm_returns_low():
+    client = WeatherClient(api_key="test_key")
+    mock_response = {
+        "list": [
+            {"dt_txt": "2026-07-01 12:00:00", "main": {"temp": 285},
+             "weather": [{"main": "Thunderstorm"}]},
+        ]
+    }
+    with patch("src.clients.weather.requests.get") as mock_get:
+        mock_get.return_value = Mock(status_code=200, json=lambda: mock_response)
+        mock_get.return_value.raise_for_status = Mock()
+        score = client.get_weather_suitability(
+            lat=30.2, lon=-97.7, checkin_date="2026-07-01", checkout_date="2026-07-05"
+        )
+    assert score == 0.0
+
+
+def test_events_magnitude_returns_score_and_reasons():
+    client = EventsClient(api_key="test_key")
+    mock_response = {
+        "results": [
+            {"title": "South by Southwest", "category": "festivals", "rank": 90},
+            {"title": "Farmers Market", "category": "community", "rank": 40},
+        ]
+    }
+    with patch("src.clients.events.requests.get") as mock_get:
+        mock_get.return_value = Mock(status_code=200, json=lambda: mock_response)
+        mock_get.return_value.raise_for_status = Mock()
+        score, reasons = client.get_event_magnitude(
+            location="Austin, TX", start_date="2026-07-01", end_date="2026-07-05"
+        )
+    assert 0.0 <= score <= 1.0
+    assert "South by Southwest" in reasons
+
+
+def test_events_no_events_returns_zero():
+    client = EventsClient(api_key="test_key")
+    with patch("src.clients.events.requests.get") as mock_get:
+        mock_get.return_value = Mock(status_code=200, json=lambda: {"results": []})
+        mock_get.return_value.raise_for_status = Mock()
+        score, reasons = client.get_event_magnitude(
+            location="Nowhere, TX", start_date="2026-07-01", end_date="2026-07-05"
+        )
+    assert score == 0.0
+    assert reasons == []
