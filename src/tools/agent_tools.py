@@ -101,13 +101,19 @@ def dispatch_tool(tool_name: str, tool_input: dict, clients: dict) -> Any:
 
 def _search_hotels(inp: dict, clients: dict) -> list[dict]:
     ta_hotels = clients["tripadvisor"].search_hotels(inp["location"], inp["radius_miles"])
-    amadeus_offers = clients["amadeus"].search_hotel_offers(
-        city_code=inp["location"][:3].upper(),
-        checkin_date=inp["checkin_date"],
-        checkout_date=inp["checkout_date"],
+    amadeus_offers = (
+        clients["amadeus"].search_hotel_offers(
+            city_code=inp["location"][:3].upper(),
+            checkin_date=inp["checkin_date"],
+            checkout_date=inp["checkout_date"],
+        )
+        if clients.get("amadeus") else []
     )
-    event_magnitude, event_names = clients["events"].get_event_magnitude(
-        inp["location"], inp["checkin_date"], inp["checkout_date"]
+    event_magnitude, event_names = (
+        clients["events"].get_event_magnitude(
+            inp["location"], inp["checkin_date"], inp["checkout_date"]
+        )
+        if clients.get("events") else (0.0, [])
     )
     # Use approximate center coordinates — geocoding integration can be added later
     weather_score = clients["weather"].get_weather_suitability(
@@ -120,7 +126,7 @@ def _search_hotels(inp: dict, clients: dict) -> list[dict]:
     for hotel in ta_hotels[:10]:
         avail_pct = 45.0
         avg_rate = 150.0
-        if amadeus_offers:
+        if amadeus_offers and clients.get("amadeus"):
             offer = amadeus_offers[0]
             avail_pct = clients["amadeus"].estimate_availability_pct(offer)
             if offer.get("offers"):

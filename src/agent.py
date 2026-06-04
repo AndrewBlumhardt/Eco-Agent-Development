@@ -49,13 +49,15 @@ class EcoTravelAgent:
         self.model = model
         self.memory = SessionMemory()
         self._client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        amadeus_id = os.environ.get("AMADEUS_CLIENT_ID")
+        amadeus_secret = os.environ.get("AMADEUS_CLIENT_SECRET")
+        predicthq_key = os.environ.get("PREDICTHQ_API_KEY")
+
         self._tool_clients = {
             "tripadvisor": TripAdvisorClient(os.environ["TRIPADVISOR_API_KEY"]),
-            "amadeus": AmadeusClient(
-                os.environ["AMADEUS_CLIENT_ID"], os.environ["AMADEUS_CLIENT_SECRET"]
-            ),
+            "amadeus": AmadeusClient(amadeus_id, amadeus_secret) if amadeus_id and amadeus_secret else None,
             "weather": WeatherClient(os.environ["OPENWEATHERMAP_API_KEY"]),
-            "events": EventsClient(os.environ["PREDICTHQ_API_KEY"]),
+            "events": EventsClient(predicthq_key) if predicthq_key else None,
             "geonames": GeoNamesClient(),
         }
 
