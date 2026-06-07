@@ -1,0 +1,164 @@
+=============================================================
+  EcoTravel Agent — Setup & Run Instructions
+=============================================================
+
+WHAT THIS IS
+------------
+EcoTravel Agent is an AI-powered travel assistant that helps you find
+low-crowd hotel destinations. It analyzes hotel availability, local events,
+weather, and pricing to produce a "crowd score" for each result — so you
+can avoid over-touristed areas.
+
+Built with: Python, Streamlit, Claude AI (Anthropic), and several travel APIs.
+
+
+GITHUB & API KEY SAFETY
+-----------------------
+If you clone this from GitHub, your API keys are safe. The project uses a
+.env file (listed in .gitignore) to store secrets. That file is NEVER
+uploaded to GitHub. Only .env.example (which contains placeholder text,
+not real keys) is included in the repo.
+
+To run the app, you create your own .env file locally with your own API keys.
+
+
+PREREQUISITES
+-------------
+- Python 3.10 or higher  (https://www.python.org/downloads/)
+- Git  (https://git-scm.com/)
+- A terminal (PowerShell on Windows, Terminal on Mac/Linux)
+
+
+STEP 1 — CLONE THE REPO
+------------------------
+  git clone <repo-url>
+  cd "Eco Agent Development"
+
+
+STEP 2 — CREATE A VIRTUAL ENVIRONMENT
+--------------------------------------
+Windows (PowerShell):
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+
+Mac / Linux:
+  python3 -m venv .venv
+  source .venv/bin/activate
+
+You should see (.venv) at the start of your terminal prompt.
+
+
+STEP 3 — INSTALL DEPENDENCIES
+-------------------------------
+  pip install -r requirements.txt
+
+
+STEP 4 — GET YOUR API KEYS
+----------------------------
+The app needs at minimum 3 API keys. Two more are optional but improve results.
+
+  REQUIRED (app will not start without these):
+  --------------------------------------------
+  1. ANTHROPIC_API_KEY
+     - What it does: Powers the AI agent (Claude)
+     - Get it at: https://console.anthropic.com/
+     - Free tier: Yes, with usage limits
+     - Cost: Pay-per-use after free credits (~$5 goes a long way for testing)
+
+  2. TRIPADVISOR_API_KEY
+     - What it does: Fetches hotel listings and reviews
+     - Get it at: https://www.tripadvisor.com/developers
+     - Free tier: Yes (Content API — 5,000 calls/month free)
+
+  3. OPENWEATHERMAP_API_KEY
+     - What it does: Fetches weather data for destinations
+     - Get it at: https://openweathermap.org/api
+     - Free tier: Yes (1,000 calls/day free)
+
+  OPTIONAL (app works without these, but results are richer with them):
+  ---------------------------------------------------------------------
+  4. AMADEUS_CLIENT_ID + AMADEUS_CLIENT_SECRET
+     - What it does: Adds real-time hotel pricing data
+     - Get it at: https://developers.amadeus.com/
+     - Free tier: Yes (test environment is free)
+     - Note: You need BOTH the client ID and the client secret
+
+  5. PREDICTHQ_API_KEY
+     - What it does: Detects local events (festivals, concerts, sports)
+       that drive crowd spikes
+     - Get it at: https://www.predicthq.com/
+     - Free tier: Yes (limited plan available)
+
+
+STEP 5 — CREATE YOUR .env FILE
+--------------------------------
+Copy the example file and fill in your keys:
+
+Windows:
+  copy .env.example .env
+
+Mac / Linux:
+  cp .env.example .env
+
+Then open .env in any text editor and replace the placeholder values
+with your real API keys. It should look like this:
+
+  ANTHROPIC_API_KEY=your-key-here
+  TRIPADVISOR_API_KEY=your-key-here
+  OPENWEATHERMAP_API_KEY=your-key-here
+
+  # Optional — leave blank or remove if you don't have these
+  AMADEUS_CLIENT_ID=your-id-here
+  AMADEUS_CLIENT_SECRET=your-secret-here
+  PREDICTHQ_API_KEY=your-key-here
+
+IMPORTANT: Never share this file or commit it to GitHub.
+
+
+STEP 6 — RUN THE APP
+---------------------
+Make sure your virtual environment is still active (you see (.venv) in
+your terminal), then run:
+
+  streamlit run app.py
+
+Streamlit will print a local URL — open it in your browser:
+  http://localhost:8501
+
+
+HOW TO USE THE APP
+------------------
+1. Set your travel preferences (budget, weather, crowd tolerance)
+2. Enter a destination, check-in date, and check-out date
+3. Click "Search Hotels"
+4. Results appear sorted by crowd score — lower score = less crowded
+5. Use the quick action buttons for more details, nearby destinations,
+   or a full low-crowd itinerary
+6. Type follow-up questions in the chat box at the bottom
+
+
+TROUBLESHOOTING
+---------------
+"ModuleNotFoundError" — your venv is not active or pip install did not run.
+  Fix: re-activate the venv and re-run: pip install -r requirements.txt
+
+"KeyError: ANTHROPIC_API_KEY" — your .env file is missing or has a typo.
+  Fix: double-check the key name and that the file is in the project root folder.
+
+".\.venv\Scripts\Activate.ps1 cannot be loaded" (Windows) — PowerShell
+  execution policy is blocking scripts.
+  Fix: run this once in PowerShell as Administrator:
+    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+Port already in use — another Streamlit instance is running.
+  Fix: close the other terminal or run: streamlit run app.py --server.port 8502
+
+
+MINIMUM VIABLE SETUP (just to test it works)
+--------------------------------------------
+If you only want to verify the app runs with the fewest accounts to create:
+  1. Anthropic API key  (required)
+  2. TripAdvisor API key  (required)
+  3. OpenWeatherMap API key  (required, free, instant signup)
+
+The app will skip Amadeus and PredictHQ gracefully if those keys are absent.
