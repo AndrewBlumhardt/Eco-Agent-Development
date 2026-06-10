@@ -178,6 +178,170 @@ python -m pytest tests/ -v
 
 ---
 
+## Full Deployment — Recreating This App From Scratch
+
+Follow these steps to go from zero to a running app on any Windows machine.
+
+### Prerequisites
+
+- Python 3.10 or higher — [python.org/downloads](https://www.python.org/downloads/)
+- Git — [git-scm.com](https://git-scm.com/)
+- PowerShell (built into Windows)
+
+### Step 1 — Clone the repo
+
+```powershell
+git clone https://github.com/AndrewBlumhardt/Eco-Agent-Development.git
+cd Eco-Agent-Development
+```
+
+### Step 2 — Create and activate a virtual environment
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+> If you get a script execution error, run this once as Administrator first:
+> `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+### Step 3 — Install Python dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+### Step 4 — Get your API keys
+
+Sign up for free accounts at each service below:
+
+| Service | Sign-up URL | Notes |
+|---|---|---|
+| Anthropic (Claude) | [console.anthropic.com](https://console.anthropic.com) | ~$5 in free credits goes a long way |
+| TripAdvisor | [tripadvisor.com/developers](https://www.tripadvisor.com/developers) | Content API, 5,000 calls/month free |
+| OpenWeatherMap | [openweathermap.org/api](https://openweathermap.org/api) | Free tier, key active within minutes |
+| LangSmith | [smith.langchain.com](https://smith.langchain.com) | Free tier, needed for trace notebooks |
+| Amadeus *(optional)* | [developers.amadeus.com](https://developers.amadeus.com) | Sandbox is free, need client ID + secret |
+| PredictHQ *(optional)* | [predicthq.com](https://predicthq.com) | Free trial available |
+
+### Step 5 — Create your `.env` file
+
+```powershell
+copy .env.example .env
+```
+
+Open `.env` in any text editor and fill in your keys:
+
+```
+ANTHROPIC_API_KEY=your-key-here
+TRIPADVISOR_API_KEY=your-key-here
+OPENWEATHERMAP_API_KEY=your-key-here
+LANGCHAIN_API_KEY=your-key-here
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=eco-travel-agent
+
+# Optional — leave blank if you don't have these
+AMADEUS_CLIENT_ID=your-id-here
+AMADEUS_CLIENT_SECRET=your-secret-here
+PREDICTHQ_API_KEY=your-key-here
+```
+
+### Step 6 — Download the GeoNames dataset
+
+Required for the "Nearby Destinations" feature. Run once:
+
+```powershell
+Invoke-WebRequest -Uri "https://download.geonames.org/export/dump/cities500.zip" -OutFile "data/cities500.zip"
+Expand-Archive -Path "data/cities500.zip" -DestinationPath "data/" -Force
+Remove-Item "data/cities500.zip"
+```
+
+Confirm `data/cities500.txt` now exists (~50 MB).
+
+### Step 7 — Verify tests pass
+
+```powershell
+python -m pytest tests/ -v
+```
+
+All tests should pass without any API keys (they use mocks).
+
+### Step 8 — Run the Streamlit app
+
+```powershell
+streamlit run app.py
+```
+
+Open [http://localhost:8501](http://localhost:8501) in your browser.
+
+**What to expect on first load:**
+1. A preference form appears — fill in budget, weather preference, drive distance, crowd tolerance
+2. Click **Save Preferences**
+3. Enter a destination (e.g. "Asheville, NC"), check-in and check-out dates
+4. Click **Search Hotels** — results appear sorted by crowd score (lower = less crowded)
+5. Use the quick-action buttons (hotel details, nearby destinations, itinerary)
+6. Type follow-up questions in the chat box
+
+### Step 9 — Run the course notebooks *(optional)*
+
+Open VS Code or Jupyter in the project root:
+
+```powershell
+jupyter notebook
+```
+
+Run notebooks in order:
+1. `notebooks/01_data_pipeline.ipynb`
+2. `notebooks/02_agent_definition.ipynb`
+3. `notebooks/03_traces_evaluation.ipynb`
+
+After running notebook 03, open [smith.langchain.com](https://smith.langchain.com)
+and navigate to the `eco-travel-agent` project to see your traces.
+
+---
+
+## Troubleshooting
+
+| Error | Fix |
+|---|---|
+| `ModuleNotFoundError` | Virtual environment not active — run `.\.venv\Scripts\Activate.ps1` |
+| `KeyError: ANTHROPIC_API_KEY` | `.env` file missing or key name has a typo |
+| `Activate.ps1 cannot be loaded` | Run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` as Admin |
+| Port 8501 already in use | Run `streamlit run app.py --server.port 8502` |
+| Amadeus returns empty results | Expected in sandbox — scorer uses fallback values automatically |
+| `data/cities500.txt not found` | Re-run Step 6 above |
+
+---
+
+## Recommended Static Datasets (for EDA and vector search)
+
+The current app uses live APIs for all data. To add a static knowledge base for
+retrieval and grounding (recommended for a stronger course submission), consider:
+
+### Hotel & Travel Reviews
+| Dataset | Source | Size | Notes |
+|---|---|---|---|
+| [515K Hotel Reviews](https://www.kaggle.com/datasets/jiashenliu/515k-hotel-reviews-data-in-europe) | Kaggle | 515K rows | TripAdvisor-style reviews, Europe hotels, great for vector search |
+| [TripAdvisor Hotel Reviews](https://www.kaggle.com/datasets/andrewmvd/trip-advisor-hotel-reviews) | Kaggle | 20K rows | Ratings + full text reviews, easy to load |
+| [Hotel Recommendations](https://huggingface.co/datasets/Qdrant/dbpedia-entities-openai3-text-embedding-3-large-1536-1M) | Hugging Face | Various | Pre-embedded, plug directly into vector search |
+| [Expedia Hotel Reviews](https://www.kaggle.com/datasets/dariuszzbyrad/expedia-hotel-review-english) | Kaggle | ~100K | Includes star ratings and categories |
+
+### What to look for in a good dataset
+- Text fields (reviews, descriptions, summaries) — needed for vector/semantic search
+- Location data (city, country, coordinates) — enables geo filtering
+- Numeric ratings — can be used as crowd proxy or quality filter
+- Enough rows (>10K) to make retrieval meaningful
+
+### How it would fit into the project
+A static dataset would serve as the agent's **knowledge base**:
+1. Load into a DataFrame during `01_data_pipeline.ipynb` (EDA section)
+2. Embed the review text using a sentence-transformer or OpenAI embeddings
+3. Store embeddings locally (FAISS) or in a cloud vector store
+4. Add a `search_reviews` tool that retrieves semantically similar reviews for a destination
+5. Claude uses retrieved reviews to ground its recommendations in real guest feedback
+
+---
+
 ## API Key Safety
 
 Your `.env` file is listed in `.gitignore` and will never be committed to GitHub.
