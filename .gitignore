@@ -5,6 +5,7 @@ __pycache__/
 *.ipynb_checkpoints/
 data/cities500.txt
 data/cities500.zip
+data/tripadvisor_hotel_reviews.csv
 venv/
 .venv/
 .streamlit/

@@ -1,5 +1,6 @@
 # src/tools/agent_tools.py
 from typing import Any
+from src.clients.static_reviews import StaticReviewsClient
 from src.scoring.crowd_scorer import calculate_crowd_score
 
 TOOL_DEFINITIONS = [
@@ -84,6 +85,45 @@ TOOL_DEFINITIONS = [
 
 def dispatch_tool(tool_name: str, tool_input: dict, clients: dict) -> Any:
     """Route a Claude tool_use block to the appropriate client function."""
+    {
+        "name": "search_reviews",
+        "description": (
+            "Search a dataset of 20,000 real TripAdvisor hotel reviews for reviews "
+            "matching specific keywords or sentiment. Use this to find what guests say "
+            "about quiet, peaceful, uncrowded stays (use sentiment='low_crowd') or about "
+            "busy, noisy, crowded hotels (use sentiment='high_crowd'). You can also search "
+            "any custom keyword (e.g. 'mountain view', 'breakfast', 'parking'). "
+            "Results include the review text snippet and star rating."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "sentiment": {
+                    "type": "string",
+                    "enum": ["low_crowd", "high_crowd", "custom"],
+                    "description": (
+                        "'low_crowd' = search for quiet/peaceful/uncrowded mentions in 4-5 star reviews; "
+                        "'high_crowd' = search for crowded/noisy mentions in 1-3 star reviews; "
+                        "'custom' = search using the keywords field"
+                    ),
+                },
+                "keywords": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Custom keywords to search for. Only used when sentiment='custom'.",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max number of reviews to return (default 5, max 10).",
+                },
+            },
+            "required": ["sentiment"],
+        },
+    },
+]
+
+
+def dispatch_tool
     try:
         if tool_name == "search_hotels":
             return _search_hotels(tool_input, clients)
@@ -95,6 +135,8 @@ def dispatch_tool(tool_name: str, tool_input: dict, clients: dict) -> Any:
             return _build_itinerary(tool_input)
         else:
             return {"error": f"Unknown tool: {tool_name}"}
+            elif tool_name == "search_reviews":
+                return _search_reviews(tool_input)
     except Exception as exc:
         return {"error": str(exc)}
 
@@ -196,3 +238,47 @@ def _build_itinerary(inp: dict) -> dict:
             "(5) Specific timing tips to avoid peak hours."
         ),
     }
+
+
+    _static_reviews_client: StaticReviewsClient | None = None
+
+
+    def _get_static_reviews_client() -> StaticReviewsClient:
+        """Lazy-load the static reviews client (CSV read once, cached for session)."""
+        global _static_reviews_client
+        if _static_reviews_client is None:
+            _static_reviews_client = StaticReviewsClient()
+        return _static_reviews_client
+
+
+    def _search_reviews(inp: dict) -> dict:
+        client = _get_static_reviews_client()
+        if not client.is_available:
+            return {
+                "available": False,
+                "message": (
+                    "Static review dataset not loaded. "
+                    "Download tripadvisor_hotel_reviews.csv via kagglehub and place in data/. "
+                    "See data/README.md for instructions."
+                ),
+            }
+        sentiment = inp.get("sentiment", "low_crowd")
+        limit = min(int(inp.get("limit", 5)), 10)
+        if sentiment == "low_crowd":
+            results = client.search_low_crowd_reviews(limit=limit)
+            label = "quiet / uncrowded (4-5 star reviews)"
+        elif sentiment == "high_crowd":
+            results = client.search_high_crowd_reviews(limit=limit)
+            label = "crowded / noisy (1-3 star reviews)"
+        else:
+            keywords = inp.get("keywords", [])
+            if not keywords:
+                return {"error": "keywords list is required when sentiment='custom'"}
+            results = client.search_by_keywords(keywords=keywords, limit=limit)
+            label = f"custom keywords: {keywords}"
+        return {
+            "sentiment_searched": label,
+            "total_dataset_reviews": client.total_reviews,
+            "results_returned": len(results),
+            "reviews": results,
+        }
