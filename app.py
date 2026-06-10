@@ -15,6 +15,8 @@ if "preferences_set" not in st.session_state:
     st.session_state.preferences_set = False
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "response_feedback" not in st.session_state:
+    st.session_state.response_feedback = {}
 
 # ── Step 1: Preference Shelter ─────────────────────────────────────────────
 if not st.session_state.preferences_set:
@@ -97,9 +99,35 @@ else:
 
     # ── Chat History ────────────────────────────────────────────────────────
     st.divider()
-    for role, message in st.session_state.chat_history[-8:]:
+    start_idx = max(len(st.session_state.chat_history) - 8, 0)
+    visible_messages = st.session_state.chat_history[start_idx:]
+
+    for idx, (role, message) in enumerate(visible_messages, start=start_idx):
         with st.chat_message(role):
             st.markdown(message)
+
+            if role == "assistant":
+                existing_feedback = st.session_state.response_feedback.get(idx, {})
+                with st.expander("Feedback on this response", expanded=False):
+                    sentiment = st.radio(
+                        "Was this response helpful?",
+                        ["Helpful", "Not helpful"],
+                        index=0 if existing_feedback.get("sentiment", "Helpful") == "Helpful" else 1,
+                        horizontal=True,
+                        key=f"feedback_sentiment_{idx}",
+                    )
+                    comment = st.text_area(
+                        "Optional comment",
+                        value=existing_feedback.get("comment", ""),
+                        placeholder="Tell us what was useful or what should improve.",
+                        key=f"feedback_comment_{idx}",
+                    )
+                    if st.button("Save feedback", key=f"save_feedback_{idx}"):
+                        st.session_state.response_feedback[idx] = {
+                            "sentiment": sentiment,
+                            "comment": comment.strip(),
+                        }
+                        st.success("Feedback saved")
 
     # ── Action Buttons ──────────────────────────────────────────────────────
     if st.session_state.chat_history:
