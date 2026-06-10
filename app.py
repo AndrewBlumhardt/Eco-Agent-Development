@@ -1,4 +1,7 @@
 # app.py
+import csv
+from io import StringIO
+
 import streamlit as st
 from dotenv import load_dotenv
 from src.agent import EcoTravelAgent
@@ -128,6 +131,37 @@ else:
                             "comment": comment.strip(),
                         }
                         st.success("Feedback saved")
+
+    if st.session_state.response_feedback:
+        feedback_rows = []
+        for msg_idx in sorted(st.session_state.response_feedback.keys()):
+            feedback = st.session_state.response_feedback[msg_idx]
+            role, response_text = st.session_state.chat_history[msg_idx]
+            if role != "assistant":
+                continue
+            feedback_rows.append(
+                {
+                    "message_index": msg_idx,
+                    "sentiment": feedback.get("sentiment", ""),
+                    "comment": feedback.get("comment", ""),
+                    "assistant_response": response_text,
+                }
+            )
+
+        if feedback_rows:
+            csv_buffer = StringIO()
+            writer = csv.DictWriter(
+                csv_buffer,
+                fieldnames=["message_index", "sentiment", "comment", "assistant_response"],
+            )
+            writer.writeheader()
+            writer.writerows(feedback_rows)
+            st.download_button(
+                "Download Feedback CSV",
+                data=csv_buffer.getvalue(),
+                file_name="response_feedback.csv",
+                mime="text/csv",
+            )
 
     # ── Action Buttons ──────────────────────────────────────────────────────
     if st.session_state.chat_history:
