@@ -12,6 +12,7 @@ reads it at startup with no API key required.
 """
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -52,6 +53,8 @@ class StaticReviewsClient:
 
     def _load(self) -> pd.DataFrame:
         if not self._path.exists():
+            self._attempt_download()
+        if not self._path.exists():
             return pd.DataFrame(columns=["Review", "Rating"])
         df = pd.read_csv(self._path)
         # Normalise column names to title case regardless of source
@@ -59,6 +62,26 @@ class StaticReviewsClient:
         df["Review"] = df["Review"].fillna("").astype(str)
         df["Rating"] = pd.to_numeric(df["Rating"], errors="coerce").fillna(0).astype(int)
         return df
+
+    def _attempt_download(self) -> None:
+        """
+        Try to download the Kaggle dataset directly when CSV is missing.
+
+        This is best-effort and intentionally silent on failure so app runtime
+        never crashes due to missing Kaggle auth/dependencies.
+        """
+        try:
+            import kagglehub
+
+            ds_path = Path(kagglehub.dataset_download("andrewmvd/trip-advisor-hotel-reviews"))
+            candidates = list(ds_path.glob("*.csv"))
+            if not candidates:
+                return
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(candidates[0], self._path)
+        except Exception:
+            # Keep no-op behavior on failure; caller will see unavailable dataset.
+            return
 
     @property
     def is_available(self) -> bool:
