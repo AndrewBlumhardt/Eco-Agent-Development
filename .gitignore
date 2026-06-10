@@ -17,3 +17,6 @@ dist/
 .vscode/settings.json
 *.swp
 *.swo
+
+# Course homework samples — local reference only, not part of the project
+samples/
