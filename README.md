@@ -37,6 +37,38 @@ a crowd likelihood score for each result — so you can avoid over-touristed are
 
 ---
 
+## Attribution and Sources
+
+### Project baseline
+
+- Fork and implementation baseline: [Brian-Covington/Eco-Agent-Development](https://github.com/Brian-Covington/Eco-Agent-Development)
+
+### Kaggle and static data sources
+
+- Static review dataset integrated in this fork:
+	[TripAdvisor Hotel Reviews (andrewmvd)](https://www.kaggle.com/datasets/andrewmvd/trip-advisor-hotel-reviews)
+	(License: CC BY-NC 4.0)
+
+### Live API sources
+
+- TripAdvisor Content API: [tripadvisor.com/developers](https://www.tripadvisor.com/developers)
+- Amadeus Hotel Search API (sandbox): [developers.amadeus.com](https://developers.amadeus.com)
+- OpenWeatherMap API: [openweathermap.org/api](https://openweathermap.org/api)
+- PredictHQ Events API: [predicthq.com](https://www.predicthq.com)
+- GeoNames cities500 dataset: [download.geonames.org/export/dump](https://download.geonames.org/export/dump/)
+
+### Models used
+
+- Runtime agent models: `claude-sonnet-4-6` and `claude-haiku-4-5-20251001` via Anthropic SDK
+- LLM-as-judge model in evaluation notebook: `claude-haiku-4-5-20251001`
+
+### Development tooling attribution
+
+- This fork was developed with GitHub Copilot (GitHub Copilot Chat).
+- Copilot model used in this session: GPT-5.3-Codex.
+
+---
+
 ## Project Structure
 
 ```
